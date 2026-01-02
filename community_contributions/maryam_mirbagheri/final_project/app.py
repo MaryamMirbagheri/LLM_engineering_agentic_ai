@@ -183,7 +183,9 @@ async def chat(user_message, chat_history):
         result = await Runner.run(service_agent, user_message)
         reply = result.final_output
 
-    print("AGENT OUTPUT:", reply)
+    print('agent output type: ', type(reply))
+    print("\n\nAGENT OUTPUT:", reply)
+    print('chat history:', chat_history)
 
     streamed = ""
     for char in reply:
