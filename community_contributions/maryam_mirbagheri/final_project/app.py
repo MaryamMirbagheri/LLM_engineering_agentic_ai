@@ -145,6 +145,9 @@ def reset_order():
     
 #save order into orders.json
 def save_order(order_data):
+    print('\n\n')
+    print(order_data)
+    print('\n\n')
     file_path = 'data/orders.json'
 
     if not os.path.exists(file_path):
@@ -152,7 +155,7 @@ def save_order(order_data):
             json.dump([], f, ensure_ascii=False, indent=2)
 
     with open(file_path, 'r', encoding='utf-8') as f:
-        orders = json.loads(f)
+        orders = json.load(f)
 
     orders.append(order_data)
 
@@ -166,14 +169,18 @@ async def chat(user_message, chat_history):
     print("USER MESSAGE:", user_message)
     print(order_state['active'])
 
-    chat_history.append({
-        'role': 'user',
-        'content': user_message
-    })
-    chat_history.append({
-        'role': 'assistant',
-        'content': ''
-    })
+    chat_history.append(
+        {'role': 'user',
+         'content' : [{
+             'type': 'text', 
+             'text' : user_message}]}
+    )
+    chat_history.append(
+        {'role':'assistant', 
+         'content':[{
+             'type':'text', 
+             'text':''}]}
+    )
 
     if order_state['active']:
         reply = order_state_machine(user_message)
@@ -187,58 +194,14 @@ async def chat(user_message, chat_history):
     print("\n\nAGENT OUTPUT:", reply)
     print('chat history:', chat_history)
 
-    streamed = ""
-    for char in reply:
-        streamed += char
-        chat_history[-1]["content"] = streamed
-        yield chat_history
-        await asyncio.sleep(0.03)  
+    for i in range(len(reply)):
+        yield reply[: i+1]
+        await asyncio.sleep(0.02)
 
 # ------------------------------- GRADIO
 
-with gr.Blocks() as demo:
-    gr.Markdown('## 🛍️ Clothing Shop Assistant')
-    gr.Markdown('Ask about products, FAQs, or place an order.')
-
-    chatbot = gr.Chatbot(
-        label='Assistant',
-        height=450
-    )
-
-    with gr.Row():
-        user_input = gr.Textbox(
-            placeholder='Ask me anything...',
-            scale=4,
-            show_label=False
-        )
-        send_btn = gr.Button('Send', scale=1)
-
-    send_btn.click(
-        chat,
-        inputs=[user_input, chatbot],
-        outputs=chatbot
-    )
-
-    user_input.submit(
-        chat,
-        inputs=[user_input, chatbot],
-        outputs=chatbot
-    )
-
-    send_btn.click(
-        lambda: "",
-        None,
-        user_input
-    )
-    user_input.submit(
-        lambda: "",
-        None,
-        user_input
-    )
-
-    gr.Markdown(
-        "💡 Try: *Hi*, *What are your return policies?*, *I want to order a jacket*"
-    )
-
-
-demo.launch()
+gr.ChatInterface(
+    fn=chat,
+    title='🛍️ Clothing Shop Assistant',
+    description='Ask about products, FAQs, or place an order.\n\n💡 Try: *Hi*, *What are your return policies?* Or *I want to place an order*',
+).launch()
